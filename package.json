@@ -1,0 +1,29 @@
+{
+  "name": "cloudnord-shield",
+  "version": "1.0.0",
+  "description": "Minecraft DDoS Protection System with XDP filtering",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "proxy": "node src/proxy/proxy.js",
+    "setup": "bash setup.sh"
+  },
+  "keywords": ["minecraft", "ddos", "protection", "xdp", "proxy"],
+  "author": "CloudNord",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "net": "^1.0.2",
+    "crypto": "^1.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

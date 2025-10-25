@@ -1,0 +1,28 @@
+{
+  "server": {
+    "panel_port": 8080,
+    "proxy_base_port": 30000,
+    "max_servers": 100
+  },
+  "database": {
+    "path": "./data/cloudnord.db"
+  },
+  "security": {
+    "api_key": "cloudnord_secure_key_2024",
+    "jwt_secret": "cloudnord_jwt_secret_2024",
+    "rate_limit": {
+      "window_ms": 900000,
+      "max_requests": 100
+    }
+  },
+  "xdp": {
+    "interface": "eth0",
+    "max_connections_per_ip": 10,
+    "ban_duration_minutes": 60
+  },
+  "minecraft": {
+    "protocol_version": "1.21",
+    "timeout_ms": 5000,
+    "max_packet_size": 2097152
+  }
+}

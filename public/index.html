@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudNord Shield Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div x-data="cloudnordApp()" x-init="init()">
+        <!-- Login Screen -->
+        <div x-show="!isAuthenticated" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-purple-700">
+            <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                        <i class="fas fa-shield-alt text-2xl text-blue-600"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-900">CloudNord Shield</h1>
+                    <p class="text-gray-600 mt-2">Minecraft DDoS Protection Panel</p>
+                </div>
+                
+                <form @submit.prevent="login()" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                        <input x-model="loginForm.username" type="text" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               placeholder="Enter username">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <input x-model="loginForm.password" type="password" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               placeholder="Enter password">
+                    </div>
+                    <button type="submit" :disabled="loading" 
+                            class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
+                        <span x-show="!loading">Sign In</span>
+                        <span x-show="loading" class="flex items-center justify-center">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                            Signing In...
+                        </span>
+                    </button>
+                </form>
+                
+                <div x-show="error" class="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <span x-text="error"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div x-show="isAuthenticated" class="min-h-screen bg-gray-100">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex justify-between items-center py-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-shield-alt text-2xl text-blue-600 mr-3"></i>
+                            <h1 class="text-xl font-semibold text-gray-900">CloudNord Shield</h1>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <span class="text-sm text-gray-600">Welcome, <span x-text="user.username"></span></span>
+                            <button @click="logout()" class="text-sm text-red-600 hover:text-red-800">
+                                <i class="fas fa-sign-out-alt mr-1"></i>
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <!-- Dashboard Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-server text-2xl text-blue-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Total Servers</p>
+                                <p class="text-2xl font-semibold text-gray-900" x-text="dashboard.totalServers || 0"></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-check-circle text-2xl text-green-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Active Protection</p>
+                                <p class="text-2xl font-semibold text-gray-900" x-text="dashboard.activeServers || 0"></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-ban text-2xl text-red-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Banned IPs</p>
+                                <p class="text-2xl font-semibold text-gray-900" x-text="dashboard.bannedIPs || 0"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <div class="bg-white rounded-lg shadow mb-8">
+                    <div class="border-b border-gray-200">
+                        <nav class="-mb-px flex space-x-8 px-6">
+                            <button @click="activeTab = 'servers'" 
+                                    :class="activeTab === 'servers' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                    class="py-4 px-1 border-b-2 font-medium text-sm">
+                                <i class="fas fa-server mr-2"></i>
+                                Servers
+                            </button>
+                            <button @click="activeTab = 'bans'" 
+                                    :class="activeTab === 'bans' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                    class="py-4 px-1 border-b-2 font-medium text-sm">
+                                <i class="fas fa-ban mr-2"></i>
+                                Bans
+                            </button>
+                        </nav>
+                    </div>
+
+                    <!-- Servers Tab -->
+                    <div x-show="activeTab === 'servers'" class="p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-lg font-medium text-gray-900">Protected Servers</h2>
+                            <button @click="showAddServerModal = true" 
+                                    class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <i class="fas fa-plus mr-2"></i>
+                                Add Protection
+                            </button>
+                        </div>
+
+                        <!-- Servers Table -->
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Real Server</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proxy Endpoint</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <template x-for="server in servers" :key="server.id">
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <span x-text="server.real_ip + ':' + server.real_port"></span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <span class="font-mono">[Your VPS IP]:<span x-text="server.proxy_port"></span></span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span :class="server.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" 
+                                                      class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                                                    <span x-text="server.status"></span>
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <button @click="removeServer(server.id)" 
+                                                        class="text-red-600 hover:text-red-900">
+                                                    <i class="fas fa-trash mr-1"></i>
+                                                    Remove
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Bans Tab -->
+                    <div x-show="activeTab === 'bans'" class="p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-lg font-medium text-gray-900">Banned IPs</h2>
+                            <button @click="showAddBanModal = true" 
+                                    class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                                <i class="fas fa-ban mr-2"></i>
+                                Add Ban
+                            </button>
+                        </div>
+
+                        <!-- Bans Table -->
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <template x-for="ban in bans" :key="ban.id">
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900" x-text="ban.ip"></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="ban.reason"></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(ban.created_at)"></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <button @click="removeBan(ban.id)" 
+                                                        class="text-red-600 hover:text-red-900">
+                                                    <i class="fas fa-trash mr-1"></i>
+                                                    Remove
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Add Server Modal -->
+        <div x-show="showAddServerModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                <div class="mt-3">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Add Server Protection</h3>
+                    <form @submit.prevent="addServer()">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Real Server IP</label>
+                            <input x-model="serverForm.real_ip" type="text" required 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="e.g., 51.79.45.120">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Real Server Port</label>
+                            <input x-model="serverForm.real_port" type="number" required 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="e.g., 25565">
+                        </div>
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" @click="showAddServerModal = false" 
+                                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
+                                Cancel
+                            </button>
+                            <button type="submit" :disabled="loading" 
+                                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50">
+                                Add Protection
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Ban Modal -->
+        <div x-show="showAddBanModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                <div class="mt-3">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Add IP Ban</h3>
+                    <form @submit.prevent="addBan()">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">IP Address</label>
+                            <input x-model="banForm.ip" type="text" required 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                                   placeholder="e.g., 192.168.1.100">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Reason (Optional)</label>
+                            <input x-model="banForm.reason" type="text" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                                   placeholder="e.g., DDoS attack">
+                        </div>
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" @click="showAddBanModal = false" 
+                                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
+                                Cancel
+                            </button>
+                            <button type="submit" :disabled="loading" 
+                                    class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50">
+                                Add Ban
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
